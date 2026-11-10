@@ -126,16 +126,22 @@ import com.music.spotui.ui.screens.LibraryItemSheet
 import com.music.spotui.ui.viewmodel.LibraryViewModel
 import com.music.spotui.data.local.LibraryChip
 import com.music.spotui.data.local.LibraryChips
+import com.music.spotui.data.local.LibrarySection
 import androidx.compose.runtime.saveable.rememberSaveable
 
-/** The chips under the title, in the Classic order; their logic is the shared [LibraryChips]. */
-private val LibraryChipLabels = listOf(
+/** Music filters shown below the primary Music/Podcasts tabs. */
+private val LibraryMusicChipLabels = listOf(
     LibraryChip.PLAYLISTS to R.string.library_chip_playlists,
     LibraryChip.BY_ME to R.string.library_chip_by_me,
     LibraryChip.ARTISTS to R.string.library_chip_artists,
     LibraryChip.ALBUMS to R.string.library_chip_albums,
-    LibraryChip.PODCASTS to R.string.library_chip_podcasts,
     LibraryChip.SONGS to R.string.library_chip_songs,
+)
+
+/** Podcast filters: Episodes and followed Shows are separate views. */
+private val LibraryPodcastChipLabels = listOf(
+    LibraryChip.EPISODES to R.string.library_chip_episodes,
+    LibraryChip.SHOWS to R.string.library_chip_shows,
 )
 
 /**
@@ -177,9 +183,14 @@ fun ImmersiveLibraryScreen(navController: NavController) {
     var gridView by remember { mutableStateOf(isLibraryGridView(context)) }
     var searchActive by rememberSaveable { mutableStateOf(false) }
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var kind by rememberSaveable { mutableStateOf(LibraryChip.ALL) }
-    // The shows are only read once the Podcasts chip is chosen.
-    LaunchedEffect(kind) { if (kind == LibraryChip.PODCASTS) vm.loadFollowedShows() }
+    var section by rememberSaveable { mutableStateOf(LibrarySection.MUSIC) }
+    var musicChip by rememberSaveable { mutableStateOf(LibraryChip.MUSIC) }
+    var podcastsChip by rememberSaveable { mutableStateOf(LibraryChip.EPISODES) }
+    val kind = if (section == LibrarySection.MUSIC) musicChip else podcastsChip
+    // Followed shows are fetched only when the Shows view is opened.
+    LaunchedEffect(section, podcastsChip) {
+        if (section == LibrarySection.PODCASTS && podcastsChip == LibraryChip.SHOWS) vm.loadFollowedShows()
+    }
 
     if (showAccount) {
         ImmersiveAccountSheet(
@@ -200,21 +211,26 @@ fun ImmersiveLibraryScreen(navController: NavController) {
     val artistSort = LibraryOrder.sort
     val (shownEntries, shownArtists) = remember(kind, allEntries, followedArtists, followedShows, searchQuery, myId, artistSort) {
         val (byKind, artists) = LibraryChips.apply(
-            kind, allEntries, LibraryOrder.arrangeArtists(followedArtists, artistSort), LIBRARY_SONG_IDS, myId, followedShows, setOf(Api.HomeCache.EPISODES_ID),
+            kind, allEntries, LibraryOrder.arrangeArtists(followedArtists, artistSort), LIBRARY_SONG_IDS, myId, followedShows, setOf(Api.HomeCache.EPISODES_ID, Api.HomeCache.NEW_EPISODES_ID),
         )
         if (searchQuery.isBlank()) byKind to artists
         else byKind.filter {
             it.name.contains(searchQuery, ignoreCase = true) || it.subtitle.contains(searchQuery, ignoreCase = true)
         } to artists.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
-    // Only the whole library, unfiltered, can be put in a new order.
-    val reorderLevel = if (kind == LibraryChip.ALL && searchQuery.isBlank()) LibraryOrder.ROOT else null
-    // The Podcasts chip waits for the shows, and says when none is followed or they could not be read (#136).
-    val podcasts = kind == LibraryChip.PODCASTS
-    val showsLoading = podcasts && showsLoad is Response.Loading
-    val showsFailed = podcasts && showsLoad is Response.Error
-    val chipEmpty = if (podcasts && showsLoad is Response.Success && followedShows.isEmpty() && searchQuery.isBlank())
-        stringResource(R.string.library_podcasts_empty) else null
+    // Only the complete Music collection can be manually reordered.
+    val reorderLevel = if (section == LibrarySection.MUSIC && kind == LibraryChip.MUSIC && searchQuery.isBlank()) LibraryOrder.ROOT else null
+    val showsSelected = section == LibrarySection.PODCASTS && kind == LibraryChip.SHOWS
+    val episodesSelected = section == LibrarySection.PODCASTS && kind == LibraryChip.EPISODES
+    val showsLoading = showsSelected && showsLoad is Response.Loading
+    val showsFailed = showsSelected && showsLoad is Response.Error
+    val chipEmpty = when {
+        showsSelected && showsLoad is Response.Success && followedShows.isEmpty() && searchQuery.isBlank() ->
+            stringResource(R.string.library_podcasts_empty)
+        episodesSelected && shownEntries.isEmpty() && searchQuery.isBlank() ->
+            stringResource(R.string.library_episodes_empty)
+        else -> null
+    }
     val chipError = if (showsFailed) stringResource(R.string.library_podcasts_error) else null
     val retry: () -> Unit = { if (showsFailed) vm.loadFollowedShows(); if (entries !is Response.Success) vm.load() }
 
@@ -233,8 +249,13 @@ fun ImmersiveLibraryScreen(navController: NavController) {
             searchActive = searchActive,
             query = searchQuery,
             onQuery = { searchQuery = it },
+            section = section,
             kind = kind,
-            onKind = { kind = LibraryChips.toggle(kind, it) },
+            onSection = { section = it },
+            onKind = {
+                if (section == LibrarySection.MUSIC) musicChip = LibraryChips.toggle(musicChip, it, LibraryChip.MUSIC)
+                else podcastsChip = LibraryChips.toggle(podcastsChip, it, LibraryChip.EPISODES)
+            },
         )
     }
     val avatar = (account as? Response.Success)?.data
@@ -402,7 +423,9 @@ private fun LibraryHeader(
     searchActive: Boolean,
     query: String,
     onQuery: (String) -> Unit,
+    section: LibrarySection,
     kind: LibraryChip,
+    onSection: (LibrarySection) -> Unit,
     onKind: (LibraryChip) -> Unit,
 ) {
     Column {
@@ -452,9 +475,32 @@ private fun LibraryHeader(
                 modifier = Modifier.padding(horizontal = Immersive.Gutter).padding(top = 4.dp, bottom = 4.dp),
             )
         }
+        Row(Modifier.fillMaxWidth().padding(horizontal = Immersive.Gutter)) {
+            listOf(
+                LibrarySection.MUSIC to R.string.recents_content_filter_music,
+                LibrarySection.PODCASTS to R.string.assisted_curation_search_filter_podcasts,
+            ).forEach { (tab, label) ->
+                val selected = section == tab
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f).clickable(role = androidx.compose.ui.semantics.Role.Button) { onSection(tab) }.padding(top = 8.dp),
+                ) {
+                    Text(
+                        stringResource(label),
+                        style = Immersive.BodyStrong.copy(color = if (selected) Immersive.Text else Immersive.Subtext),
+                    )
+                    Spacer(Modifier.height(9.dp))
+                    Box(
+                        Modifier.fillMaxWidth(0.46f).height(2.dp)
+                            .background(if (selected) Immersive.Accent else Color.Transparent),
+                    )
+                }
+            }
+        }
         ImmersiveChipRow {
-            LibraryChipLabels.forEach { (k, label) ->
-                ImmersiveChip(stringResource(label), selected = k == kind) { onKind(k) }
+            val filters = if (section == LibrarySection.MUSIC) LibraryMusicChipLabels else LibraryPodcastChipLabels
+            filters.forEach { (filter, label) ->
+                ImmersiveChip(stringResource(label), selected = filter == kind) { onKind(filter) }
             }
         }
     }
