@@ -37,7 +37,7 @@ object ExtensionStore {
      */
     const val OFFICIAL_REPO = "https://raw.githubusercontent.com/kota-zo/myspoti-extensions/main/index.json"
     /** Community packages maintained in this user's Myspoti repository (separate from upstream official extensions). */
-    const val COMMUNITY_REPO = "https://raw.githubusercontent.com/afrolord892-ai/myspoti/main/index.json"
+    const val COMMUNITY_REPO = "https://raw.githubusercontent.com/afrolord892-ai/myspoti/work/myspoti-massive-upgrade/index.json"
 
     /** One repository's index: [catalog] once read, [error] if it could not be. */
     data class Repo(val url: String, val catalog: Catalog? = null, val error: String? = null, val loading: Boolean = false)
