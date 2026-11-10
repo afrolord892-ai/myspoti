@@ -36,6 +36,8 @@ object ExtensionStore {
      * removable). Each extension in it is reviewed (one pull request per extension).
      */
     const val OFFICIAL_REPO = "https://raw.githubusercontent.com/kota-zo/myspoti-extensions/main/index.json"
+    /** Community packages maintained in this user's Myspoti repository (separate from upstream official extensions). */
+    const val COMMUNITY_REPO = "https://raw.githubusercontent.com/afrolord892-ai/myspoti/main/index.json"
 
     /** One repository's index: [catalog] once read, [error] if it could not be. */
     data class Repo(val url: String, val catalog: Catalog? = null, val error: String? = null, val loading: Boolean = false)
@@ -77,7 +79,7 @@ object ExtensionStore {
     fun isOfficial(url: String) = url == OFFICIAL_REPO
 
     /** The repositories read: the official one first, then the user's. */
-    fun sources(userUrls: List<String>) = (listOf(OFFICIAL_REPO) + userUrls).distinct()
+    fun sources(userUrls: List<String>) = (listOf(OFFICIAL_REPO, COMMUNITY_REPO) + userUrls).distinct()
 
     /** The official repository has something to show: until then it is left out of the Store. */
     fun officialShown() = _repos.value[OFFICIAL_REPO]?.catalog?.extensions?.isNotEmpty() == true
