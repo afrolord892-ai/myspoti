@@ -42,10 +42,11 @@ import com.music.spotui.ui.screens.AccountBrowser
 
 /** The label of a library sort order. */
 internal fun libraryOrderLabel(sort: LibraryOrder.Sort): Int = when (sort) {
+    LibraryOrder.Sort.RELEVANCE -> R.string.library_sort_relevance
     LibraryOrder.Sort.CUSTOM -> R.string.your_library_sort_order_custom
     LibraryOrder.Sort.RECENTS -> R.string.library_sort_recents
     LibraryOrder.Sort.RECENTLY_ADDED -> R.string.library_sort_recently_added
-    LibraryOrder.Sort.ALPHABETICAL -> R.string.your_library_sort_order_alphabetical
+    LibraryOrder.Sort.ALPHABETICAL -> R.string.library_sort_name
     LibraryOrder.Sort.CREATOR -> R.string.your_library_sort_order_creator
 }
 

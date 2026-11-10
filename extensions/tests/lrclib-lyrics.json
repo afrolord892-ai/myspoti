@@ -1,0 +1,25 @@
+{
+  "track": {
+    "title": "Test Composition",
+    "artist": "Sample Artist",
+    "album": "Test Album",
+    "durationMs": 120000
+  },
+  "http": [
+    {
+      "match": "/api/get?",
+      "body": {
+        "trackName": "Test Composition",
+        "artistName": "Sample Artist",
+        "albumName": "Test Album",
+        "duration": 120,
+        "instrumental": false,
+        "plainLyrics": "First line\nSecond line",
+        "syncedLyrics": "[00:01.25] First line\n[00:03.50] Second line"
+      }
+    }
+  ],
+  "steps": [
+    { "hook": "lyrics", "expect": { "outcome": "found", "contains": "First line" } }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": "io.github.afrolord892.lrcliblyrics",
+  "name": "LRCLIB Synced Lyrics",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "apiVersion": 1,
+  "minAppVersion": "2.4.0",
+  "author": "afrolord892-ai",
+  "description": "Fetches line-synchronised lyrics from LRCLIB, checks artist, title and duration, and falls back to plain lyrics only when enabled.",
+  "homepage": "https://github.com/afrolord892-ai/myspoti",
+  "category": "lyrics",
+  "tags": ["lyrics", "synced", "lrc", "karaoke", "lrclib"],
+  "actions": [
+    { "name": "lyrics.provide", "why": "Find timed or plain lyrics for the current song" },
+    { "name": "network", "hosts": ["lrclib.net"], "why": "Request lyrics and verify the matching track metadata" },
+    { "name": "settings.page", "why": "Choose whether unsynchronised lyrics are shown" }
+  ],
+  "settings": [
+    { "key": "plainToo", "type": "toggle", "label": "Show plain lyrics", "description": "Allow plain text only when LRCLIB has no timed version.", "default": true }
+  ],
+  "changelog": "First release. Exact-match lookup first, strict fallback matching second, with LRC timestamps converted to Myspoti milliseconds."
+}

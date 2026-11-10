@@ -1,0 +1,29 @@
+{
+  "track": {
+    "title": "Test Composition",
+    "artist": "Sample Artist",
+    "album": "Test Album",
+    "durationMs": 120000
+  },
+  "http": [
+    {
+      "match": "/ws/2/recording/",
+      "body": {
+        "recordings": [
+          {
+            "id": "11111111-2222-4333-8444-555555555555",
+            "title": "Test Composition",
+            "length": 120000,
+            "artist-credit": [{ "artist": { "name": "Sample Artist" } }],
+            "first-release-date": "2001-04-05",
+            "isrcs": ["USAAA0100001"],
+            "releases": [{ "title": "Test Album" }]
+          }
+        ]
+      }
+    }
+  ],
+  "steps": [
+    { "hook": "trackinfo", "expect": { "outcome": "found", "contains": "MusicBrainz ID: 11111111-2222-4333-8444-555555555555" } }
+  ]
+}

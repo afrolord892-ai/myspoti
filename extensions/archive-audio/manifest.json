@@ -1,0 +1,29 @@
+{
+  "id": "io.github.afrolord892.archiveaudio",
+  "name": "Archive Audio (CC & Public Domain)",
+  "version": "1.0.0",
+  "versionCode": 1,
+  "apiVersion": 1,
+  "minAppVersion": "2.4.0",
+  "author": "afrolord892-ai",
+  "description": "Finds exact-duration audio recordings in the Internet Archive and offers only items carrying an explicit Public Domain, CC0, CC BY or CC BY-SA license. Supports streaming and offline audio downloads.",
+  "homepage": "https://github.com/afrolord892-ai/myspoti",
+  "category": "tools",
+  "tags": ["internet archive", "public domain", "creative commons", "audio", "offline"],
+  "actions": [
+    {
+      "name": "audio.source",
+      "why": "Stream an exact-match recording with an explicit permissive license"
+    },
+    {
+      "name": "download.source",
+      "why": "Offer offline copies only when the item declares a permissive license"
+    },
+    {
+      "name": "network",
+      "hosts": ["archive.org", "*.archive.org"],
+      "why": "Search licensed Internet Archive audio and read its item metadata"
+    }
+  ],
+  "changelog": "First release. Audio streaming and downloads are limited to exact-duration items with a verified Public Domain, CC0, CC BY or CC BY-SA license URL."
+}

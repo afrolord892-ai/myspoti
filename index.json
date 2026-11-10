@@ -1,0 +1,123 @@
+{
+  "format": 1,
+  "name": "Afrolord Myspoti Extensions",
+  "extensions": [
+    {
+      "id": "io.github.afrolord892.archiveaudio",
+      "name": "Archive Audio (CC & Public Domain)",
+      "version": "1.0.0",
+      "versionCode": 1,
+      "apiVersion": 1,
+      "author": "afrolord892-ai",
+      "description": "Finds exact-duration audio recordings in the Internet Archive and offers only items carrying an explicit Public Domain, CC0, CC BY or CC BY-SA license. Supports streaming and offline audio downloads.",
+      "actions": [
+        {
+          "name": "audio.source",
+          "why": "Stream an exact-match recording with an explicit permissive license"
+        },
+        {
+          "name": "download.source",
+          "why": "Offer offline copies only when the item declares a permissive license"
+        },
+        {
+          "name": "network",
+          "hosts": [
+            "archive.org",
+            "*.archive.org"
+          ],
+          "why": "Search licensed Internet Archive audio and read its item metadata"
+        }
+      ],
+      "url": "extensions/packages/archive-audio-1.0.0.zip",
+      "sha256": "6c29328784d1a2fb507bbee0d5b4e6c8ec0d3179f6e264c22657158d14ec9fe1",
+      "size": 3995,
+      "category": "tools",
+      "tags": [
+        "internet archive",
+        "public domain",
+        "creative commons",
+        "audio",
+        "offline"
+      ],
+      "updated_at": "2026-11-10",
+      "min_app_version": "2.4.0",
+      "changelog": "First release. Audio streaming and downloads are limited to exact-duration items with a verified Public Domain, CC0, CC BY or CC BY-SA license URL."
+    },
+    {
+      "id": "io.github.afrolord892.lrcliblyrics",
+      "name": "LRCLIB Synced Lyrics",
+      "version": "1.0.0",
+      "versionCode": 1,
+      "apiVersion": 1,
+      "author": "afrolord892-ai",
+      "description": "Fetches line-synchronised lyrics from LRCLIB, checks artist, title and duration, and falls back to plain lyrics only when enabled.",
+      "actions": [
+        {
+          "name": "lyrics.provide",
+          "why": "Find timed or plain lyrics for the current song"
+        },
+        {
+          "name": "network",
+          "hosts": [
+            "lrclib.net"
+          ],
+          "why": "Request lyrics and verify the matching track metadata"
+        },
+        {
+          "name": "settings.page",
+          "why": "Choose whether unsynchronised lyrics are shown"
+        }
+      ],
+      "url": "extensions/packages/lrclib-lyrics-1.0.0.zip",
+      "sha256": "bed0cfeaf7ab765954bd865829f4736168f354e548adb39b5774c2297eca0281",
+      "size": 2960,
+      "category": "lyrics",
+      "tags": [
+        "lyrics",
+        "synced",
+        "lrc",
+        "karaoke",
+        "lrclib"
+      ],
+      "updated_at": "2026-11-10",
+      "min_app_version": "2.4.0",
+      "changelog": "First release. Exact-match lookup first, strict fallback matching second, with LRC timestamps converted to Myspoti milliseconds."
+    },
+    {
+      "id": "io.github.afrolord892.musicbrainzdetails",
+      "name": "MusicBrainz Track Details",
+      "version": "1.0.0",
+      "versionCode": 1,
+      "apiVersion": 1,
+      "author": "afrolord892-ai",
+      "description": "Adds a verified MusicBrainz recording match, release date, ISRC and recording identifier beneath the current track details.",
+      "actions": [
+        {
+          "name": "trackinfo.provide",
+          "why": "Show recording identifiers and release metadata"
+        },
+        {
+          "name": "network",
+          "hosts": [
+            "musicbrainz.org"
+          ],
+          "why": "Look up the current recording in MusicBrainz"
+        }
+      ],
+      "url": "extensions/packages/musicbrainz-details-1.0.0.zip",
+      "sha256": "0007624b3c9502763d82a86698d50a5d67bc55448b97cc9b751987079b9141bc",
+      "size": 2998,
+      "category": "lyrics",
+      "tags": [
+        "musicbrainz",
+        "metadata",
+        "isrc",
+        "recording",
+        "release"
+      ],
+      "updated_at": "2026-11-10",
+      "min_app_version": "2.4.0",
+      "changelog": "First release. One-request recording lookup with exact title and primary-artist matching and a one-request-per-second client throttle."
+    }
+  ]
+}

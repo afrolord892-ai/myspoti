@@ -134,8 +134,17 @@ fun LibraryScreen(navController: NavController) {
     var gridView by remember { mutableStateOf(isLibraryGridView(context)) }
     var searchActive by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(false) }
     var searchQuery by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf("") }
-    // The filter chips under the title; the chosen one is kept while the screen is open.
-    var chip by androidx.compose.runtime.saveable.rememberSaveable { mutableStateOf(com.music.spotui.data.local.LibraryChip.ALL) }
+    // Music and Podcasts keep independent filter selections when switching between them.
+    var librarySection by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(com.music.spotui.data.local.LibrarySection.MUSIC)
+    }
+    var musicChip by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(com.music.spotui.data.local.LibraryChip.MUSIC)
+    }
+    var podcastsChip by androidx.compose.runtime.saveable.rememberSaveable {
+        mutableStateOf(com.music.spotui.data.local.LibraryChip.EPISODES)
+    }
+    val chip = if (librarySection == com.music.spotui.data.local.LibrarySection.MUSIC) musicChip else podcastsChip
 
     if (showAccount) {
         AccountSheet(
@@ -210,7 +219,22 @@ fun LibraryScreen(navController: NavController) {
             }
         }
 
-        LibraryChipRow(chip) { chip = com.music.spotui.data.local.LibraryChips.toggle(chip, it) }
+        LibraryChipRow(
+            section = librarySection,
+            chosen = chip,
+            onSection = { librarySection = it },
+            onTap = { tapped ->
+                if (librarySection == com.music.spotui.data.local.LibrarySection.MUSIC) {
+                    musicChip = com.music.spotui.data.local.LibraryChips.toggle(
+                        musicChip, tapped, com.music.spotui.data.local.LibraryChip.MUSIC,
+                    )
+                } else {
+                    podcastsChip = com.music.spotui.data.local.LibraryChips.toggle(
+                        podcastsChip, tapped, com.music.spotui.data.local.LibraryChip.EPISODES,
+                    )
+                }
+            },
+        )
 
         // Grid/list switch, like the icon at the top-right of Spotify's library.
         Row(
@@ -278,9 +302,12 @@ fun LibraryScreen(navController: NavController) {
         val followedArtists by libraryViewModel.followedArtists.collectAsState()
         val showsLoad by libraryViewModel.followedShows.collectAsState()
         val followedShows = (showsLoad as? Response.Success)?.data.orEmpty()
-        // The shows are only read once the Podcasts chip is chosen.
-        androidx.compose.runtime.LaunchedEffect(chip) {
-            if (chip == com.music.spotui.data.local.LibraryChip.PODCASTS) libraryViewModel.loadFollowedShows()
+        // Followed shows are fetched only when the Shows view is opened.
+        androidx.compose.runtime.LaunchedEffect(librarySection, podcastsChip) {
+            if (librarySection == com.music.spotui.data.local.LibrarySection.PODCASTS &&
+                podcastsChip == com.music.spotui.data.local.LibraryChip.SHOWS) {
+                libraryViewModel.loadFollowedShows()
+            }
         }
         val refreshing by libraryViewModel.refreshing.collectAsState()
         when (entries) {
@@ -341,7 +368,7 @@ fun LibraryScreen(navController: NavController) {
                     chip, allEntries, followedArtists,
                     setOf(Api.HomeCache.LIKED_SONGS_ID, Api.HomeCache.LOCAL_FILES_ID, Api.HomeCache.DOWNLOADS_ID,
                         com.music.spotui.radio.RadioFeaturePref.LIBRARY_ENTRY_ID),
-                    myId, followedShows, setOf(Api.HomeCache.EPISODES_ID),
+                    myId, followedShows, setOf(Api.HomeCache.EPISODES_ID, Api.HomeCache.NEW_EPISODES_ID),
                 )
                 val filteredEntries = if (searchQuery.isBlank()) chipEntries
                     else chipEntries.filter {
@@ -351,18 +378,25 @@ fun LibraryScreen(navController: NavController) {
                 val filteredArtists = LibraryOrder.arrangeArtists(chipArtists, LibraryOrder.sort).let { sorted ->
                     if (searchQuery.isBlank()) sorted else sorted.filter { it.name.contains(searchQuery, ignoreCase = true) }
                 }
-                // Moving rows only makes sense on the whole list.
-                val movable = searchQuery.isBlank() && chip == com.music.spotui.data.local.LibraryChip.ALL
-                // The Podcasts chip waits for the shows, and says when none is followed or they could not be read (#136).
-                val podcasts = chip == com.music.spotui.data.local.LibraryChip.PODCASTS
+                // Manual reordering applies only to the complete Music collection.
+                val movable = searchQuery.isBlank() &&
+                    librarySection == com.music.spotui.data.local.LibrarySection.MUSIC &&
+                    chip == com.music.spotui.data.local.LibraryChip.MUSIC
+                val showsSelected = librarySection == com.music.spotui.data.local.LibrarySection.PODCASTS &&
+                    chip == com.music.spotui.data.local.LibraryChip.SHOWS
+                val episodesSelected = librarySection == com.music.spotui.data.local.LibrarySection.PODCASTS &&
+                    chip == com.music.spotui.data.local.LibraryChip.EPISODES
                 val chipNote = when {
-                    !podcasts -> null
-                    showsLoad is Response.Error -> stringResource(R.string.library_podcasts_error)
-                    showsLoad is Response.Success && followedShows.isEmpty() && searchQuery.isBlank() -> stringResource(R.string.library_podcasts_empty)
+                    showsSelected && showsLoad is Response.Error -> stringResource(R.string.library_podcasts_error)
+                    showsSelected && showsLoad is Response.Success && followedShows.isEmpty() && searchQuery.isBlank() ->
+                        stringResource(R.string.library_podcasts_empty)
+                    episodesSelected && filteredEntries.isEmpty() && searchQuery.isBlank() ->
+                        stringResource(R.string.library_episodes_empty)
                     else -> null
                 }
-                val chipRetry: (() -> Unit)? = if (podcasts && showsLoad is Response.Error) { { libraryViewModel.loadFollowedShows() } } else null
-                if (podcasts && showsLoad is Response.Loading) LibrarySkeleton(PaddingValues(0.dp))
+                val chipRetry: (() -> Unit)? =
+                    if (showsSelected && showsLoad is Response.Error) ({ libraryViewModel.loadFollowedShows() }) else null
+                if (showsSelected && showsLoad is Response.Loading) LibrarySkeleton(PaddingValues(0.dp))
                 else if (gridView) LibraryGridScreen(PaddingValues(0.dp), filteredEntries, filteredArtists, navController,
                     reorderLevel = if (movable) LibraryOrder.ROOT else null, pinned = rootPinned, note = chipNote, onRetry = chipRetry)
                 else SumUpLibraryScreen(PaddingValues(0.dp), filteredEntries, filteredArtists, navController,
@@ -374,37 +408,69 @@ fun LibraryScreen(navController: NavController) {
     }
 }
 
-/** Playlists / By me / Artists / Albums / Podcasts / Songs: one chip chosen at a time; the chosen one again clears it. */
+/** Primary Music / Podcasts tabs with the filters belonging to the selected area. */
 @Composable
-private fun LibraryChipRow(chosen: com.music.spotui.data.local.LibraryChip, onTap: (com.music.spotui.data.local.LibraryChip) -> Unit) {
-    val chips = listOf(
+private fun LibraryChipRow(
+    section: com.music.spotui.data.local.LibrarySection,
+    chosen: com.music.spotui.data.local.LibraryChip,
+    onSection: (com.music.spotui.data.local.LibrarySection) -> Unit,
+    onTap: (com.music.spotui.data.local.LibraryChip) -> Unit,
+) {
+    val musicFilters = listOf(
         com.music.spotui.data.local.LibraryChip.PLAYLISTS to R.string.library_chip_playlists,
         com.music.spotui.data.local.LibraryChip.BY_ME to R.string.library_chip_by_me,
         com.music.spotui.data.local.LibraryChip.ARTISTS to R.string.library_chip_artists,
         com.music.spotui.data.local.LibraryChip.ALBUMS to R.string.library_chip_albums,
-        com.music.spotui.data.local.LibraryChip.PODCASTS to R.string.library_chip_podcasts,
         com.music.spotui.data.local.LibraryChip.SONGS to R.string.library_chip_songs,
     )
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier
-            .fillMaxWidth()
-            .horizontalScroll(androidx.compose.foundation.rememberScrollState())
-            .padding(16.dp, 0.dp, 16.dp, 6.dp),
-    ) {
-        for ((chip, label) in chips) {
-            val on = chip == chosen
-            Text(
-                stringResource(label),
-                color = if (on) Color.Black else AppText,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(if (on) com.music.spotui.ui.theme.AppAccent else tone(0xFF2A2A2A))
-                    .clickable { onTap(chip) }
-                    .padding(horizontal = 14.dp, vertical = 7.dp),
-            )
+    val podcastFilters = listOf(
+        com.music.spotui.data.local.LibraryChip.EPISODES to R.string.library_chip_episodes,
+        com.music.spotui.data.local.LibraryChip.SHOWS to R.string.library_chip_shows,
+    )
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+            listOf(
+                com.music.spotui.data.local.LibrarySection.MUSIC to R.string.recents_content_filter_music,
+                com.music.spotui.data.local.LibrarySection.PODCASTS to R.string.assisted_curation_search_filter_podcasts,
+            ).forEach { (tab, label) ->
+                val selected = section == tab
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f).clickable { onSection(tab) }.padding(top = 8.dp),
+                ) {
+                    Text(
+                        stringResource(label),
+                        color = if (selected) AppText else AppMuted,
+                        fontSize = 16.sp,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                    )
+                    Spacer(Modifier.height(9.dp))
+                    Box(
+                        Modifier.fillMaxWidth(0.46f).height(2.dp)
+                            .background(if (selected) AppAccent else Color.Transparent),
+                    )
+                }
+            }
+        }
+        val filters = if (section == com.music.spotui.data.local.LibrarySection.MUSIC) musicFilters else podcastFilters
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth().horizontalScroll(androidx.compose.foundation.rememberScrollState())
+                .padding(16.dp, 4.dp, 16.dp, 6.dp),
+        ) {
+            for ((filter, label) in filters) {
+                val selected = filter == chosen
+                Text(
+                    stringResource(label),
+                    color = if (selected) Color.Black else AppText,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clip(RoundedCornerShape(50))
+                        .background(if (selected) AppAccent else tone(0xFF2A2A2A))
+                        .clickable { onTap(filter) }
+                        .padding(horizontal = 14.dp, vertical = 7.dp),
+                )
+            }
         }
     }
 }
@@ -960,10 +1026,11 @@ private fun AccountRow(label: String, tint: Color = AppText, onClick: () -> Unit
 }
 
 private fun sortLabel(sort: LibraryOrder.Sort) = when (sort) {
+    LibraryOrder.Sort.RELEVANCE -> R.string.library_sort_relevance
     LibraryOrder.Sort.CUSTOM -> R.string.your_library_sort_order_custom
     LibraryOrder.Sort.RECENTS -> R.string.library_sort_recents
     LibraryOrder.Sort.RECENTLY_ADDED -> R.string.library_sort_recently_added
-    LibraryOrder.Sort.ALPHABETICAL -> R.string.your_library_sort_order_alphabetical
+    LibraryOrder.Sort.ALPHABETICAL -> R.string.library_sort_name
     LibraryOrder.Sort.CREATOR -> R.string.your_library_sort_order_creator
 }
 

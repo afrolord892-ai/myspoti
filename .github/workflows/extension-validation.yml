@@ -1,0 +1,63 @@
+name: Validate Myspoti extensions
+
+on:
+  push:
+    paths:
+      - "extensions/**"
+      - "index.json"
+      - ".github/workflows/extension-validation.yml"
+  pull_request:
+    paths:
+      - "extensions/**"
+      - "index.json"
+      - ".github/workflows/extension-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extension-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate package index and hashes
+        run: python3 extensions/verify_index.py
+
+      - name: Run provider regression tests
+        run: |
+          node extensions/tests/run_archive_audio_test.js
+          node extensions/tests/run_lrclib_test.js
+          node extensions/tests/run_musicbrainz_test.js
+
+      - name: Build the official Myspoti extension CLI
+        run: |
+          chmod +x base/gradlew
+          ./base/gradlew -p base :extensions-cli:installDist
+
+      - name: Check extension manifests and sandbox scripts
+        run: |
+          CLI=./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext
+          "$CLI" check extensions/archive-audio
+          "$CLI" check extensions/lrclib-lyrics
+          "$CLI" check extensions/musicbrainz-details
+
+      - name: Run mocked Myspoti hook scenarios
+        run: |
+          CLI=./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext
+          "$CLI" test extensions/archive-audio --scenario extensions/tests/archive-audio.json
+          "$CLI" test extensions/lrclib-lyrics --scenario extensions/tests/lrclib-lyrics.json
+          "$CLI" test extensions/musicbrainz-details --scenario extensions/tests/musicbrainz-details.json
