@@ -1,0 +1,54 @@
+{
+  "track": {
+    "title": "Public Domain Test Track",
+    "artist": "Public Domain Artist",
+    "durationMs": 120000
+  },
+  "http": [
+    {
+      "match": "advancedsearch.php",
+      "body": {
+        "response": {
+          "docs": [
+            {
+              "identifier": "pd-test-track",
+              "title": "Public Domain Test Track",
+              "creator": "Public Domain Artist",
+              "licenseurl": "https://creativecommons.org/publicdomain/zero/1.0/",
+              "runtime": "120"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "match": "/metadata/pd-test-track",
+      "body": {
+        "metadata": {
+          "title": "Public Domain Test Track",
+          "creator": "Public Domain Artist",
+          "licenseurl": "https://creativecommons.org/publicdomain/zero/1.0/",
+          "runtime": "120"
+        },
+        "files": [
+          {
+            "name": "public-domain-test.mp3",
+            "format": "MP3",
+            "size": "123456"
+          }
+        ]
+      }
+    }
+  ],
+  "steps": [
+    {
+      "hook": "audio-source",
+      "expect": { "outcome": "found" }
+    },
+    {
+      "hook": "download-source",
+      "quality": "small",
+      "expect": { "outcome": "found" }
+    }
+  ]
+}

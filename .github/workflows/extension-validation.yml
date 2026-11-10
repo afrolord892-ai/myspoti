@@ -1,0 +1,52 @@
+name: Validate Myspoti extensions
+
+on:
+  push:
+    paths:
+      - "extensions/**"
+      - "index.json"
+      - ".github/workflows/extension-validation.yml"
+  pull_request:
+    paths:
+      - "extensions/**"
+      - "index.json"
+      - ".github/workflows/extension-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  extension-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate package index and hashes
+        run: python3 extensions/verify_index.py
+
+      - name: Run local extension regression tests
+        run: node extensions/tests/run_archive_audio_test.js
+
+      - name: Build the official Myspoti extension CLI
+        run: |
+          chmod +x base/gradlew
+          ./base/gradlew -p base :extensions-cli:installDist
+
+      - name: Check extension manifest and sandbox script
+        run: ./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext check extensions/archive-audio
+
+      - name: Run mocked Myspoti hook scenario
+        run: ./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext test extensions/archive-audio --scenario extensions/tests/archive-audio.json
