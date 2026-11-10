@@ -3,20 +3,24 @@ package com.music.spotui.data.local
 import com.music.spotui.data.entity.ArtistsModel
 import com.music.spotui.data.entity.LibraryEntry
 
+/** The two primary areas in Your Library. */
+enum class LibrarySection { MUSIC, PODCASTS }
+
 /**
- * The chips under "Your Library" (Playlists, By me, Artists, Albums, Podcasts, Songs), like the
- * official app's filter row: one at a time, tapping the chosen one again shows everything.
+ * Filters inside the Music and Podcasts areas. ALL remains available for older callers;
+ * MUSIC excludes podcast collections, while Episodes and Shows are distinct podcast views.
  */
-enum class LibraryChip { ALL, PLAYLISTS, BY_ME, ARTISTS, ALBUMS, PODCASTS, SONGS }
+enum class LibraryChip {
+    ALL, MUSIC, PLAYLISTS, BY_ME, ARTISTS, ALBUMS, SONGS, EPISODES, SHOWS,
+    /** Compatibility filter for older callers that displayed episodes and shows together. */
+    PODCASTS,
+}
 
 object LibraryChips {
     /**
-     * [songIds]: the library ids of the rows that hold songs rather than a playlist (Liked Songs,
-     * Local Files, Downloaded). Folders count as playlists, as they sit among them in Spotify.
-     * Artists are a separate list, so only the Artists chip keeps them. [myId]: the signed-in
-     * account's Spotify user id; "By me" keeps the playlists it owns (a folder is not owned by
-     * anyone, so it is left out). Podcasts keeps the rows of [podcastIds] (Your Episodes) and
-     * then every followed show of [shows], which are read apart from the library list.
+     * [songIds] are the app's saved rows that contain songs rather than albums/playlists.
+     * [podcastIds] are the saved podcast episode collections (Your Episodes / New Episodes).
+     * [shows] is loaded separately because followed podcast shows are not in the music library.
      */
     fun apply(
         chip: LibraryChip,
@@ -28,14 +32,18 @@ object LibraryChips {
         podcastIds: Set<String> = emptySet(),
     ): Pair<List<LibraryEntry>, List<ArtistsModel>> = when (chip) {
         LibraryChip.ALL -> entries to artists
+        LibraryChip.MUSIC -> entries.filter { it.spotifyId !in podcastIds } to artists
         LibraryChip.ARTISTS -> emptyList<LibraryEntry>() to artists
         LibraryChip.SONGS -> entries.filter { it.spotifyId in songIds } to emptyList()
-        LibraryChip.PLAYLISTS -> entries.filter { it.spotifyId !in songIds && (it.isPlaylist || it.isFolder) } to emptyList()
+        LibraryChip.PLAYLISTS -> entries.filter { it.spotifyId !in songIds && it.spotifyId !in podcastIds && (it.isPlaylist || it.isFolder) } to emptyList()
         LibraryChip.BY_ME -> entries.filter { myId != null && it.ownerUri == "spotify:user:$myId" } to emptyList()
+        LibraryChip.EPISODES -> entries.filter { it.spotifyId in podcastIds } to emptyList()
+        LibraryChip.SHOWS -> shows to emptyList()
         LibraryChip.PODCASTS -> (entries.filter { it.spotifyId in podcastIds } + shows) to emptyList()
-        LibraryChip.ALBUMS -> entries.filter { it.spotifyId !in songIds && !it.isPlaylist && !it.isFolder } to emptyList()
+        LibraryChip.ALBUMS -> entries.filter { it.spotifyId !in songIds && it.spotifyId !in podcastIds && !it.isPlaylist && !it.isFolder } to emptyList()
     }
 
     /** A tap on [tapped] while [current] is chosen. */
-    fun toggle(current: LibraryChip, tapped: LibraryChip): LibraryChip = if (current == tapped) LibraryChip.ALL else tapped
+    fun toggle(current: LibraryChip, tapped: LibraryChip, fallback: LibraryChip = LibraryChip.ALL): LibraryChip =
+        if (current == tapped) fallback else tapped
 }
