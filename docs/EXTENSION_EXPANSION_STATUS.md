@@ -2,33 +2,47 @@
 
 Updated: 2026-11-10
 
-## What the current API supports
+## What the current Myspoti extension API supports
 
-The Myspoti extension API exposes hooks for lyrics, romanisation, track information, audio source resolution, audio downloads, Home/search blocks, menus, player buttons, playback controls and events, settings, and UI looks. Audio downloads accept flac, dash-flac, m4a, and mp3 files.
+The existing API supports lyrics, lyrics romanisation, track metadata, ordered audio-source and download-source providers, Home/search blocks, menus, player buttons, playback controls and events, settings, and UI looks. Extension actions are a closed catalogue; a manifest cannot safely invent a new action.
 
-The documented action catalogue does not expose a video.download or video.source action. The app has its own music-video playback path, but an ordinary extension cannot register a video downloader by declaring an invented action. A real video-download feature would require a separate core-app design and implementation, with explicit rights checks and support for content the user owns or is authorised to download.
+The API does not expose video.source or video.download. Myspoti already has a built-in music-video playback path, but a rights-aware video download feature needs core-app design and implementation, not an extension that declares a nonexistent hook. Any future video save flow must be limited to content the user owns or is expressly authorised to download.
 
-## Public extension ecosystem found during this pass
-
-The GitHub topic search for myspoti-extension returned only a small handful of repositories. Relevant projects include a YouTube Music download helper, an offline lyrics romaniser, an Eclipse FLAC bridge, a low-data audio extension, and a broad multi-provider extension. This is not an 80-package ecosystem, and an advertised provider is not automatically a verified or safe provider.
-
-## Implemented in this repository
+## Implemented provider packages
 
 ### Archive Audio (CC & Public Domain)
 
-A new extension package is being added with:
+- Audio streaming and offline audio file options from Internet Archive.
+- Checks explicit Public Domain Mark, CC0, CC BY or CC BY-SA license URLs.
+- Requires matching title, creator and a known duration within the provider's acceptance window.
+- Does not use account cookies, DRM handling, paywall bypasses or private tokens.
+- Mocked scenario covers a permitted item, an excluded non-commercial item, and a duration mismatch.
 
-- audio.source for streaming an exact-match item;
-- download.source for offline audio files;
-- explicit license URL checks for Public Domain Mark, CC0, CC BY, and CC BY-SA;
-- title, artist, and duration checks before a file is returned;
-- no login, cookies, DRM handling, paywall bypass, or private account tokens;
-- a mocked test scenario and a Node regression test for accepted, unlicensed, and duration-mismatched results.
+### LRCLIB Synced Lyrics
 
-This is a lawful fallback catalogue, not a replacement for commercial streaming services. Internet Archive metadata can be incomplete or incorrectly supplied by uploaders, so a user should still review an item's rights page before reuse or redistribution.
+- Uses LRCLIB's documented exact-match /api/get endpoint first, then its /api/search fallback.
+- Requires a normalized title and primary-artist match; duration must be within two seconds when known.
+- Converts LRC timestamps to Myspoti milliseconds and prefers synced lyrics.
+- Plain lyrics are optional and controlled by a setting; instrumental/no-lyrics results are ignored.
+- Uses anonymous read-only API access; never publishes, edits, or uploads lyrics.
 
-## Why the 80+ request is not being represented as complete
+### MusicBrainz Track Details
 
-An extension package must implement an actual provider or feature against the closed API, and the app asks the user to approve its permissions. Duplicating names, inventing action keys, or adding placeholder manifests would create a misleading store rather than working integrations. Video downloading also cannot be implemented as an extension-only feature with the current API.
+- Adds read-only recording metadata: release name/date, ISRC and MusicBrainz recording ID when present.
+- Requires exact normalized title and primary-artist matches; recording length must be within five seconds when supplied.
+- Sends a meaningful User-Agent, keeps a 24-hour in-memory cache and throttles its own calls to one per 1.1 seconds.
+- Service term: MusicBrainz documents free use for non-commercial purposes and requires commercial users to contact it. Do not enable this provider for a commercial Myspoti deployment without resolving those terms with MusicBrainz.
 
-The safe expansion path is to add and test individual providers that expose authorised content, plus core-app support for a rights-aware video download flow. Every provider needs its own manifest, least-privilege host list, matching logic, test fixtures, and release package. This repository should only count a provider as implemented after its tests pass and its source and licensing have been reviewed.
+## Verification
+
+Every listed provider has a manifest, least-privilege network host list, matching logic, source README, regression tests, package ZIP, index entry, and mock hook scenario. CI verifies ZIP hashes and manifest consistency, builds the official extension CLI, runs myspoti-ext check, and executes the mocked scenarios. A provider is not counted as implemented until this workflow passes.
+
+## Why 80+ is not being called complete
+
+Adding 80 names, empty manifests, duplicate wrappers or imaginary API actions would produce a misleading extension store. The public ecosystem found during this pass is small, and each genuine provider needs API compatibility, licence/terms review, request limits, host permissions, matching logic and tests. This branch is the working foundation for expanding provider-by-provider, not a claim that 80 integrations already exist.
+
+## Next engineering batch
+
+1. Add more verified lyric, metadata and authorised audio providers where their API terms and host contracts permit.
+2. Design a dedicated, rights-aware video-source/download core API before advertising video downloads.
+3. Run the full Android build and device-level player/download checks before preparing an APK release.

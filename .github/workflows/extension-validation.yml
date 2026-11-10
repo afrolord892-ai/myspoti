@@ -37,16 +37,27 @@ jobs:
       - name: Validate package index and hashes
         run: python3 extensions/verify_index.py
 
-      - name: Run local extension regression tests
-        run: node extensions/tests/run_archive_audio_test.js
+      - name: Run provider regression tests
+        run: |
+          node extensions/tests/run_archive_audio_test.js
+          node extensions/tests/run_lrclib_test.js
+          node extensions/tests/run_musicbrainz_test.js
 
       - name: Build the official Myspoti extension CLI
         run: |
           chmod +x base/gradlew
           ./base/gradlew -p base :extensions-cli:installDist
 
-      - name: Check extension manifest and sandbox script
-        run: ./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext check extensions/archive-audio
+      - name: Check extension manifests and sandbox scripts
+        run: |
+          CLI=./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext
+          "$CLI" check extensions/archive-audio
+          "$CLI" check extensions/lrclib-lyrics
+          "$CLI" check extensions/musicbrainz-details
 
-      - name: Run mocked Myspoti hook scenario
-        run: ./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext test extensions/archive-audio --scenario extensions/tests/archive-audio.json
+      - name: Run mocked Myspoti hook scenarios
+        run: |
+          CLI=./base/extensions-cli/build/install/myspoti-ext/bin/myspoti-ext
+          "$CLI" test extensions/archive-audio --scenario extensions/tests/archive-audio.json
+          "$CLI" test extensions/lrclib-lyrics --scenario extensions/tests/lrclib-lyrics.json
+          "$CLI" test extensions/musicbrainz-details --scenario extensions/tests/musicbrainz-details.json
