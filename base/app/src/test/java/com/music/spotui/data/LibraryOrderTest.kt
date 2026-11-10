@@ -24,6 +24,9 @@ class LibraryOrderTest {
 
     private fun ids(l: List<LibraryEntry>) = l.map { it.spotifyId }
 
+    @Test fun relevancePreservesThePersonalizedServiceOrder() =
+        assertEquals(ids(all), ids(LibraryOrder.arrange(all, Sort.RELEVANCE, emptyList(), 1)))
+
     @Test fun customWithoutSavedOrderKeepsSpotifys() =
         assertEquals(ids(all), ids(LibraryOrder.arrange(all, Sort.CUSTOM, emptyList(), 1)))
 
