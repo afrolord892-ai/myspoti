@@ -808,4 +808,9 @@
     <string name="settings_sources_none">No extension plays or downloads music yet: Spotify plays everything. Add one in Extensions.</string>
     <string name="ext_settings_header">Extension settings</string>
     <string name="queue_autoplay_heading">Autoplay</string>
+    <string name="library_sort_relevance">Relevance</string>
+    <string name="library_sort_name">Name</string>
+    <string name="library_chip_episodes">Episodes</string>
+    <string name="library_chip_shows">Shows</string>
+    <string name="library_episodes_empty">No podcast episodes yet</string>
 </resources>
