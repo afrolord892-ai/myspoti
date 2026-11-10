@@ -477,8 +477,6 @@ private fun LibraryChipRow(
 
 @OptIn(ExperimentalGlideComposeApi::class)
 @Composable
-private fun AccountAvatar@OptIn(ExperimentalGlideComposeApi::class)
-@Composable
 private fun AccountAvatar(url: String, size: androidx.compose.ui.unit.Dp) {
     GlideImage(
         transition = CrossFade,
