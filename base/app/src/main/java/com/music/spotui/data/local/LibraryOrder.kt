@@ -15,14 +15,14 @@ import java.text.Collator
  * Files, Downloaded) always stay on top, as in the official app.
  */
 object LibraryOrder {
-    enum class Sort { CUSTOM, RECENTS, RECENTLY_ADDED, ALPHABETICAL, CREATOR }
+    enum class Sort { RELEVANCE, CUSTOM, RECENTS, RECENTLY_ADDED, ALPHABETICAL, CREATOR }
 
     const val ROOT = "root"
     private const val PREFS = "library_order"
     private const val KEY_SORT = "sort"
     private const val SEP = "\u001F"
 
-    var sort by mutableStateOf(Sort.CUSTOM)
+    var sort by mutableStateOf(Sort.RELEVANCE)
         private set
     /** Bumped on every change, so screens re-arrange. */
     var version by mutableStateOf(0)
@@ -31,7 +31,7 @@ object LibraryOrder {
 
     fun init(c: Context) {
         context = c.applicationContext
-        sort = runCatching { Sort.valueOf(prefs()?.getString(KEY_SORT, null) ?: "") }.getOrDefault(Sort.CUSTOM)
+        sort = runCatching { Sort.valueOf(prefs()?.getString(KEY_SORT, null) ?: "") }.getOrDefault(Sort.RELEVANCE)
     }
 
     private fun prefs() = context?.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -77,6 +77,8 @@ object LibraryOrder {
         val rest = entries.drop(pinned)
         val collator = Collator.getInstance().apply { strength = Collator.PRIMARY }
         val sorted = when (sort) {
+            // The service's personalized order is already relevance-ranked; preserve it.
+            Sort.RELEVANCE -> rest
             Sort.CUSTOM -> {
                 if (saved.isEmpty()) rest
                 else {
